@@ -1,7 +1,6 @@
-﻿using CodeBase.Buildings;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace CodeBase
+namespace CodeBase.ResourcesBuildings
 {
     public class Resource : MonoBehaviour
     {

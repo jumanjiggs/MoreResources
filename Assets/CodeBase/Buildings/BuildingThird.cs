@@ -1,28 +1,18 @@
-﻿using System.Collections;
-using UnityEngine;
+﻿using CodeBase.Warehouse;
 
 namespace CodeBase.Buildings
 {
     public class BuildingThird : Building
     {
-        protected override void GenerateResources()
-        {
-            
-        }
-        
-        public override void TakeResources()
-        {
-            
-        }
+        public ReceivingResourcesWarehouse receivingWarehouse;
 
-        protected override IEnumerator StartGenerateResources()
-        {
-            throw new System.NotImplementedException();
-        }
+        protected override bool CanGenerateResources() => 
+            base.CanGenerateResources() && receivingWarehouse.HasAvailableResources();
 
-        public override bool HaveResources()
+        protected override void CreateResources()
         {
-            throw new System.NotImplementedException();
+            base.CreateResources();
+            receivingWarehouse.GiveResourceToProduce();
         }
     }
 }

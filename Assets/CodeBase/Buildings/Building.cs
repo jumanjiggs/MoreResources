@@ -1,81 +1,69 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using CodeBase.Player;
-using DG.Tweening;
+using CodeBase.ResourcesBuildings;
+using CodeBase.UI;
+using TMPro;
 using UnityEngine;
 
 namespace CodeBase.Buildings
 {
-    public enum TypeResource
-    {
-        First,
-        Second,
-        Third
-    }
-
     public abstract class Building : MonoBehaviour
     {
-        public TypeResource typeResource;
-        public Resource prefabResource;
-        public Transform positionResource;
-        public Transform bagPosition;
-        public ResourceHolder resourceHolder;
-        public PlayerBag playerBag;
-        public int currentResources;
-        public int maxResources;
-        public float generateTimeResource;
-        public int availableFirstResource;
+        private const float OffsetResourceY = 0.3f;
+        public Transform spawnPositionResource;
+        public Resource resource;
+        public TextMeshPro resourcesCountText;
+        public UIFactory uiFactory;
+        public float cooldownSpawnResource;
+        public int maxCapacityResources;
 
-        protected Vector3 OffsetResource;
-        
-        protected readonly Stack<Resource> CurrentResource = new Stack<Resource>();
+        private Vector3 offsetResource;
 
-        private void Start()
+        public readonly Stack<Resource> Resources = new Stack<Resource>();
+
+        private IEnumerator SpawnResources()
         {
-            GenerateResources();
-        }
-
-        protected abstract void GenerateResources();
-
-        public abstract void TakeResources();
-
-        protected void GiveAwayResources()
-        {
-            if (currentResources > 0)
-                StartCoroutine(MoveResources());
-        }
-
-        protected abstract IEnumerator StartGenerateResources();
-
-        private IEnumerator MoveResources()
-        {
-            StopCoroutine(StartGenerateResources());
-            foreach (var resource in CurrentResource.ToList())
+            while (CanGenerateResources())
             {
-                if (currentResources > 0 && playerBag.HaveFreeSpace())
-                {
-                    playerBag.IncreaseValue();
-                    CurrentResource.Pop();
-                    currentResources--;
-                    resource.transform.parent = bagPosition;
-                    resource.transform.DOLocalJump(Vector3.zero + playerBag.offsetBag, 5, 1, 1).OnComplete(() => {});
-                    playerBag.IncreaseOffset();
-                    DecreaseOffset();
-                    resourceHolder.AddResourceType(resource.type);
-                    resourceHolder.AddResource(resource);
-                    yield return new WaitForSeconds(0.2f);
-                }
+                CreateResources();
+                yield return new WaitForSeconds(cooldownSpawnResource);
             }
-            StartCoroutine(StartGenerateResources());
+
+            if (ReachedMaxCapacity()) 
+                uiFactory.MaximumCapacityReachedUI(gameObject);
         }
 
-        private void DecreaseOffset() => 
-            OffsetResource.y -= 0.3f;
+        protected virtual void CreateResources()
+        {
+            var currentResource = Instantiate(resource, spawnPositionResource.position + offsetResource, Quaternion.identity);
+            Resources.Push(currentResource);
+            IncreaseOffset();
+            UpdateResourceCountDisplay();
+        }
 
-        protected void IncreaseOffset() => 
-            OffsetResource.y += 0.3f;
+        private void UpdateResourceCountDisplay() => 
+            resourcesCountText.text = Resources.Count + "/" + maxCapacityResources;
 
-        public abstract bool HaveResources();
+        protected virtual bool CanGenerateResources() => 
+            IsNotFullFactory();
+
+        private bool IsNotFullFactory() => 
+            Resources.Count < maxCapacityResources;
+        
+        private void IncreaseOffset() => 
+            offsetResource.y += OffsetResourceY;
+
+        public void DecreaseOffset() => 
+            offsetResource.y -= OffsetResourceY;
+
+        private bool ReachedMaxCapacity() => 
+            Resources.Count >= maxCapacityResources;
+
+        public void StartSpawn() => 
+            StartCoroutine(SpawnResources());
+
+        public void StopSpawn() =>
+            StopAllCoroutines();
     }
 }
